@@ -13,7 +13,7 @@ class SkatersStatsDataFrame:
         return self.players_data
 
     def get_df_for_goal_predictions(self) -> DataFrame:
-        relevant_columns = ['playerId', 'name', 'icetime', 'games_played', 'I_F_xGoals', 'I_F_goals']
+        relevant_columns = ['playerId', 'name', 'position', 'games_played', 'I_F_xGoals', 'I_F_goals']
         df = self.players_data[self.players_data['situation'] == 'all']
         df = df[relevant_columns]
 
@@ -32,6 +32,14 @@ class SkatersStatsDataFrame:
         previous_season_goal_data = previous_season_goal_data.drop(columns=['I_F_xGoals', 'I_F_goals'])
         df = df.merge(previous_season_goal_data, on='playerId', how='left')
         df['P_S_shooting_talent'] = df['P_S_shooting_talent'].fillna('not_applicable')
+
+        # calculate median shooting talent
+        temp_df = df[df['P_S_shooting_talent'] != 'not_applicable']
+        median_shooting_talent = temp_df['P_S_shooting_talent'].astype(float).median()
+
+        df['P_S_shooting_talent'] = np.where(df['P_S_shooting_talent'] == 'not_applicable', median_shooting_talent,
+                                             df['P_S_shooting_talent'])
+        df['P_S_shooting_talent'] = df['P_S_shooting_talent'].astype(float)
 
         return df
 
