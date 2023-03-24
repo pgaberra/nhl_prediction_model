@@ -2,24 +2,32 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from IPython.display import clear_output
-from skaters_stats_df import SkatersStatsDataFrame
+from skaters_stats_df import SkatersStats
 
-skaters_df_2018 = SkatersStatsDataFrame('data/skaters_2018.csv')
-skaters_df_2019 = SkatersStatsDataFrame('data/skaters_2019.csv', previous_season_players_data=skaters_df_2018.get_df())
-skaters_df_2020 = SkatersStatsDataFrame('data/skaters_2020.csv', previous_season_players_data=skaters_df_2019.get_df())
-skaters_df_2021 = SkatersStatsDataFrame('data/skaters_2021.csv', previous_season_players_data=skaters_df_2020.get_df())
-skaters_df_2022 = SkatersStatsDataFrame('data/skaters_2022.csv', previous_season_players_data=skaters_df_2021.get_df())
+skaters_df_2016 = SkatersStats('data/skaters_2016.csv', '2016')
+skaters_df_2017 = SkatersStats('data/skaters_2017.csv', '2017', prev_season_skaters_obj=skaters_df_2016)
+skaters_df_2018 = SkatersStats('data/skaters_2018.csv', '2018', prev_season_skaters_obj=skaters_df_2017)
+skaters_df_2019 = SkatersStats('data/skaters_2019.csv', '2019', prev_season_skaters_obj=skaters_df_2018)
+skaters_df_2020 = SkatersStats('data/skaters_2020.csv', '2020', prev_season_skaters_obj=skaters_df_2019)
+skaters_df_2021 = SkatersStats('data/skaters_2021.csv', '2021', prev_season_skaters_obj=skaters_df_2020)
+skaters_df_2022 = SkatersStats('data/skaters_2022.csv', '2022', prev_season_skaters_obj=skaters_df_2021)
 
-df_train = pd.concat([skaters_df_2019.get_df_for_goal_predictions(), skaters_df_2020.get_df_for_goal_predictions(),
-                      skaters_df_2021.get_df_for_goal_predictions()], ignore_index=True)
-df_eval = skaters_df_2022.get_df_for_goal_predictions()
+NUM_OF_SEASONS_AGO_GOAL_DATA = 2
+
+df_train = pd.concat([skaters_df_2018.get_df_for_goal_predictions(num_of_previous_seasons_for_goals_data=NUM_OF_SEASONS_AGO_GOAL_DATA),
+                      skaters_df_2019.get_df_for_goal_predictions(num_of_previous_seasons_for_goals_data=NUM_OF_SEASONS_AGO_GOAL_DATA),
+                      skaters_df_2020.get_df_for_goal_predictions(num_of_previous_seasons_for_goals_data=NUM_OF_SEASONS_AGO_GOAL_DATA),
+                      skaters_df_2021.get_df_for_goal_predictions(num_of_previous_seasons_for_goals_data=NUM_OF_SEASONS_AGO_GOAL_DATA)], ignore_index=True)
+df_eval = skaters_df_2022.get_df_for_goal_predictions(num_of_previous_seasons_for_goals_data=NUM_OF_SEASONS_AGO_GOAL_DATA)
 y_train = df_train.pop('I_F_goals')
 y_eval = df_eval.pop('I_F_goals')
 
 print(df_train.dtypes)
 
 CATEGORICAL_COLUMNS = ['position']
-NUMERIC_COLUMNS = ['games_played', 'I_F_xGoals', '5on4_icetime', 'P_S_shooting_talent']
+NUMERIC_COLUMNS = ['games_played', 'I_F_xGoals', '5on4_icetime', f'{NUM_OF_SEASONS_AGO_GOAL_DATA - 1}_season_ago_shooting_talent',
+                   f'{NUM_OF_SEASONS_AGO_GOAL_DATA}_season_ago_shooting_talent', f'{NUM_OF_SEASONS_AGO_GOAL_DATA - 1}_season_ago_goals',
+                   f'{NUM_OF_SEASONS_AGO_GOAL_DATA}_season_ago_goals']
 
 feature_columns = []
 
@@ -31,7 +39,7 @@ for feature_name in NUMERIC_COLUMNS:
     feature_columns.append(tf.feature_column.numeric_column(feature_name, dtype=tf.float32))
 
 
-def make_input_function(data_df, label_df, num_epochs=100, shuffle=True, batch_size=32):
+def make_input_function(data_df, label_df, num_epochs=50, shuffle=True, batch_size=32):
     def input_function():
         ds = tf.data.Dataset.from_tensor_slices((dict(data_df), label_df))
         if shuffle:
@@ -67,5 +75,7 @@ for i, prediction in enumerate(predictions):
 
 sorted_player_goal_predictions = sorted(player_goal_predictions, key=lambda x: x[1], reverse=True)
 
+i = 1
 for player_name, predicted_goals in sorted_player_goal_predictions:
-    print(f"{player_name}: {predicted_goals:.2f} goals")
+    print(f"{i}: {player_name}: {predicted_goals:.2f} goals")
+    i += 1
