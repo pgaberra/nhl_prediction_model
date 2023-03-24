@@ -22,7 +22,7 @@ df_eval = skaters_df_2022.get_df_for_goal_predictions(num_of_previous_seasons_fo
 y_train = df_train.pop('I_F_goals')
 y_eval = df_eval.pop('I_F_goals')
 
-print(df_train.dtypes)
+print(df_eval)
 
 CATEGORICAL_COLUMNS = ['position']
 NUMERIC_COLUMNS = ['games_played', 'I_F_xGoals', '5on4_icetime', f'{NUM_OF_SEASONS_AGO_GOAL_DATA - 1}_season_ago_shooting_talent',
@@ -39,7 +39,7 @@ for feature_name in NUMERIC_COLUMNS:
     feature_columns.append(tf.feature_column.numeric_column(feature_name, dtype=tf.float32))
 
 
-def make_input_function(data_df, label_df, num_epochs=50, shuffle=True, batch_size=32):
+def make_input_function(data_df, label_df, num_epochs=250, shuffle=True, batch_size=32):
     def input_function():
         ds = tf.data.Dataset.from_tensor_slices((dict(data_df), label_df))
         if shuffle:
@@ -56,7 +56,6 @@ eval_input_fn = make_input_function(df_eval, y_eval, num_epochs=1, shuffle=False
 linear_est = tf.estimator.LinearRegressor(feature_columns=feature_columns)
 
 linear_est.train(train_input_fn)
-# result = linear_est.evaluate(eval_input_fn)
 
 predictions = list(linear_est.predict(input_fn=eval_input_fn))
 result = linear_est.evaluate(eval_input_fn)
@@ -67,9 +66,15 @@ print("Mean squared error:", result['average_loss'])
 
 player_goal_predictions = []
 
+pd.set_option('display.max_columns', 20)
+specific_name = 'Zach Hyman'
+row = df_eval.loc[df_eval['name'] == specific_name]
+print(row)
+
+
 for i, prediction in enumerate(predictions):
     player_data = df_eval.iloc[i]
-    player_name = player_data['name']  # Assuming you have a 'player_name' column in your DataFrame
+    player_name = player_data['name']
     predicted_goals = prediction['predictions'][0]
     player_goal_predictions.append((player_name, predicted_goals))
 

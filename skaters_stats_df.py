@@ -56,8 +56,6 @@ class SkatersStats:
 
             prev_season_skaters_goal_stats.rename(columns={'I_F_goals': f'{i}_season_ago_goals'}, inplace=True)
 
-            print(prev_season_skaters_goal_stats)
-
             df = df.merge(prev_season_skaters_goal_stats, on='playerId', how='left')
             df[f'{i}_season_ago_shooting_talent'] = df[f'{i}_season_ago_shooting_talent'].fillna(
                 'not_applicable')
@@ -70,6 +68,5 @@ class SkatersStats:
             df[f'{i}_season_ago_shooting_talent'] = df[f'{i}_season_ago_shooting_talent'].astype(float)
 
             df[f'{i}_season_ago_goals'] = df[f'{i}_season_ago_goals'].fillna(0.0)
-
 
         return df
