@@ -12,20 +12,21 @@ skaters_df_2020 = SkatersStats('data/skaters_2020.csv', '2020')
 skaters_df_2021 = SkatersStats('data/skaters_2021.csv', '2021')
 skaters_df_2022 = SkatersStats('data/skaters_2022.csv', '2022')
 
+
 scaler = StandardScaler()
 
 df_train = pd.concat(
-    [skaters_df_2018.get_df_for_goal_predictions(),
-     skaters_df_2019.get_df_for_goal_predictions(),
-     skaters_df_2020.get_df_for_goal_predictions(),
-     skaters_df_2021.get_df_for_goal_predictions()],
+    [skaters_df_2018.get_df_for_assist_predictions(),
+     skaters_df_2019.get_df_for_assist_predictions(),
+     skaters_df_2020.get_df_for_assist_predictions(),
+     skaters_df_2021.get_df_for_assist_predictions()],
     ignore_index=True)
-df_eval = skaters_df_2022.get_df_for_goal_predictions()
-y_train = df_train.pop('I_F_goals')
-y_eval = df_eval.pop('I_F_goals')
+df_eval = skaters_df_2022.get_df_for_assist_predictions()
+y_train = df_train.pop('I_F_assists')
+y_eval = df_eval.pop('I_F_assists')
 
 CATEGORICAL_COLUMNS = ['playerId', 'position']
-NUMERIC_COLUMNS = ['icetime', 'games_played', 'I_F_xGoals', '5on4_icetime', 'I_F_shotsOnGoal']
+NUMERIC_COLUMNS = ['icetime', 'games_played', 'OnIce_F_xGoals', 'OnIce_F_shotsOnGoal', '5on4_icetime', 'onIce_corsiPercentage']
 
 # Fit the scaler on the training data
 scaler.fit(df_train[NUMERIC_COLUMNS])
@@ -46,8 +47,7 @@ for feature_name in CATEGORICAL_COLUMNS:
 for feature_name in NUMERIC_COLUMNS:
     feature_columns.append(tf.feature_column.numeric_column(feature_name, dtype=tf.float32))
 
-
-def make_input_function(data_df, label_df, num_epochs=200, shuffle=True, batch_size=32):
+def make_input_function(data_df, label_df, num_epochs=350, shuffle=True, batch_size=32):
     def input_function():
         ds = tf.data.Dataset.from_tensor_slices((dict(data_df), label_df))
         if shuffle:
@@ -72,22 +72,22 @@ clear_output()
 
 print(result)
 
-player_goal_predictions = []
+player_assists_predictions = []
 
 for i, prediction in enumerate(predictions):
     player_data = df_eval.iloc[i]
     player_name = player_data['name']
-    predicted_goals = prediction['predictions'][0]
+    predicted_assists = prediction['predictions'][0]
 
     # Set negative predictions to 0
-    if predicted_goals < 0:
-        predicted_goals = 0
+    if predicted_assists < 0:
+        predicted_assists = 0
 
-    player_goal_predictions.append((player_name, predicted_goals))
+    player_assists_predictions.append((player_name, predicted_assists))
 
-sorted_player_goal_predictions = sorted(player_goal_predictions, key=lambda x: x[1], reverse=True)
+sorted_player_assists_predictions = sorted(player_assists_predictions, key=lambda x: x[1], reverse=True)
 
 i = 1
-for player_name, predicted_goals in sorted_player_goal_predictions:
-    print(f"{i}: {player_name}: {predicted_goals:.2f} goals")
+for player_name, predicted_assists in sorted_player_assists_predictions:
+    print(f"{i}: {player_name}: {predicted_assists:.2f} assists")
     i += 1
