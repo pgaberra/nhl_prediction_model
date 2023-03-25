@@ -27,11 +27,25 @@ class SkatersStats:
         icetime_5on4_data.rename(columns={'icetime': '5on4_icetime'}, inplace=True)
         df = df.merge(icetime_5on4_data, on='playerId', how='left')
 
-        df = self.add_prev_season_shooting_talent(df, number_of_seasons=num_of_previous_seasons_for_goals_data)
+        df = self.add_prev_season_goal_data(df, number_of_seasons=num_of_previous_seasons_for_goals_data)
 
         return df
 
-    def add_prev_season_shooting_talent(self, df, number_of_seasons=1):
+    def get_df_for_assist_predictions(self, num_of_previous_seasons_for_assists_data=2) -> DataFrame:
+        relevant_columns = ['playerId', 'name', 'position', 'games_played', 'OnIce_F_xGoals', 'onIce_corsiPercentage']
+        df = self.players_data[self.players_data['situation'] == 'all']
+        df = df[relevant_columns]
+
+        icetime_5on4_data = self.players_data[self.players_data['situation'] == '5on4']
+        icetime_5on4_data = icetime_5on4_data[['playerId', 'icetime']]
+        icetime_5on4_data.rename(columns={'icetime': '5on4_icetime'}, inplace=True)
+        df = df.merge(icetime_5on4_data, on='playerId', how='left')
+
+        df = self.add_prev_season_assist_data(df, number_of_seasons=num_of_previous_seasons_for_assists_data)
+
+        return df
+
+    def add_prev_season_goal_data(self, df, number_of_seasons=1):
         current = None
 
         for i in range(1, number_of_seasons + 1):
@@ -69,4 +83,29 @@ class SkatersStats:
 
             df[f'{i}_season_ago_goals'] = df[f'{i}_season_ago_goals'].fillna(0.0)
 
+        return df
+
+    def add_prev_season_assist_data(self, df, number_of_seasons=1):
+        current = None
+
+        for i in range(1, number_of_seasons + 1):
+            if current is None:
+                current = self.get_prev_season_obj()
+            else:
+                current = current.get_prev_season_obj()
+
+            prev_season_df = current.get_df()
+            prev_season_skaters_all_stats = prev_season_df[
+                prev_season_df['situation'] == 'all']
+            prev_season_skaters_assist_stats = prev_season_skaters_all_stats[
+                ['playerId', 'I_F_primaryAssists', 'I_F_secondaryAssists']].copy()
+
+            prev_season_skaters_assist_stats.rename(columns={'I_F_primaryAssists': f'{i}_season_ago_primary_assists',
+                                                           'I_F_secondaryAssists': f'{i}_season_ago_secondary_assists'}, inplace=True)
+
+            df = df.merge(prev_season_skaters_assist_stats, on='playerId', how='left')
+            df[f'{i}_season_ago_primary_assists'] = df[f'{i}_season_ago_primary_assists'].fillna(0.0)
+            df[f'{i}_season_ago_secondary_assists'] = df[f'{i}_season_ago_secondary_assists'].fillna(0.0)
+
+            
         return df
