@@ -6,48 +6,78 @@ from sklearn.preprocessing import StandardScaler
 from skaters_stats_df import SkatersStats
 
 
-skaters_df_2018 = SkatersStats('data/skaters_2018.csv', '2018')
-skaters_df_2019 = SkatersStats('data/skaters_2019.csv', '2019')
-skaters_df_2020 = SkatersStats('data/skaters_2020.csv', '2020')
-skaters_df_2021 = SkatersStats('data/skaters_2021.csv', '2021')
-skaters_df_2022 = SkatersStats('data/skaters_2022.csv', '2022')
+def predict(get_df_function, target_column, categorical_columns, numeric_columns, num_epochs):
+    skaters_df_2018 = SkatersStats('data/skaters_2018.csv', '2018')
+    skaters_df_2019 = SkatersStats('data/skaters_2019.csv', '2019')
+    skaters_df_2020 = SkatersStats('data/skaters_2020.csv', '2020')
+    skaters_df_2021 = SkatersStats('data/skaters_2021.csv', '2021')
+    skaters_df_2022 = SkatersStats('data/skaters_2022.csv', '2022')
 
-scaler = StandardScaler()
+    scaler = StandardScaler()
 
-df_train = pd.concat(
-    [skaters_df_2018.get_df_for_goal_predictions(),
-     skaters_df_2019.get_df_for_goal_predictions(),
-     skaters_df_2020.get_df_for_goal_predictions(),
-     skaters_df_2021.get_df_for_goal_predictions()],
-    ignore_index=True)
-df_eval = skaters_df_2022.get_df_for_goal_predictions()
-y_train = df_train.pop('I_F_goals')
-y_eval = df_eval.pop('I_F_goals')
+    df_train = pd.concat(
+        [getattr(skaters_df_2018, get_df_function)(),
+         getattr(skaters_df_2019, get_df_function)(),
+         getattr(skaters_df_2020, get_df_function)(),
+         getattr(skaters_df_2021, get_df_function)()],
+        ignore_index=True)
+    df_eval = getattr(skaters_df_2022, get_df_function)()
 
-CATEGORICAL_COLUMNS = ['playerId', 'position']
-NUMERIC_COLUMNS = ['icetime', 'games_played', 'I_F_xGoals', '5on4_icetime', 'I_F_shotsOnGoal']
+    y_train = df_train.pop(target_column)
+    y_eval = df_eval.pop(target_column)
 
-# Fit the scaler on the training data
-scaler.fit(df_train[NUMERIC_COLUMNS])
+    # Fit the scaler on the training data
+    scaler.fit(df_train[numeric_columns])
 
-# Transform the training and evaluation data using the scaler
-scaled_train_data = scaler.transform(df_train[NUMERIC_COLUMNS])
-scaled_eval_data = scaler.transform(df_eval[NUMERIC_COLUMNS])
+    # Transform the training and evaluation data using the scaler
+    scaled_train_data = scaler.transform(df_train[numeric_columns])
+    scaled_eval_data = scaler.transform(df_eval[numeric_columns])
 
-df_train[NUMERIC_COLUMNS] = scaled_train_data
-df_eval[NUMERIC_COLUMNS] = scaled_eval_data
+    df_train[numeric_columns] = scaled_train_data
+    df_eval[numeric_columns] = scaled_eval_data
 
-feature_columns = []
+    feature_columns = []
 
-for feature_name in CATEGORICAL_COLUMNS:
-    vocabulary = df_train[feature_name].unique()
-    feature_columns.append(tf.feature_column.categorical_column_with_vocabulary_list(feature_name, vocabulary))
+    for feature_name in categorical_columns:
+        vocabulary = df_train[feature_name].unique()
+        feature_columns.append(tf.feature_column.categorical_column_with_vocabulary_list(feature_name, vocabulary))
 
-for feature_name in NUMERIC_COLUMNS:
-    feature_columns.append(tf.feature_column.numeric_column(feature_name, dtype=tf.float32))
+    for feature_name in numeric_columns:
+        feature_columns.append(tf.feature_column.numeric_column(feature_name, dtype=tf.float32))
+
+    train_input_fn = make_input_function(df_train, y_train, num_epochs=num_epochs)
+    eval_input_fn = make_input_function(df_eval, y_eval, num_epochs=1, shuffle=False)
+
+    linear_est = tf.estimator.LinearRegressor(feature_columns=feature_columns)
+
+    linear_est.train(train_input_fn)
+
+    predictions = list(linear_est.predict(input_fn=eval_input_fn))
+
+    clear_output()
+
+    players = []
+
+    for i, prediction in enumerate(predictions):
+        player = {}
+        player_data = df_eval.iloc[i]
+        player_id = player_data['playerId']
+        player_name = player_data['name']
+        predicted_target = prediction['predictions'][0]
+
+        # Set negative predictions to 0
+        if predicted_target < 0:
+            predicted_target = 0
+
+        player['playerId'] = player_id
+        player['name'] = player_name
+        player['prediction'] = predicted_target
+        players.append(player)
+
+    return players
 
 
-def make_input_function(data_df, label_df, num_epochs=200, shuffle=True, batch_size=32):
+def make_input_function(data_df, label_df, num_epochs=350, shuffle=True, batch_size=32):
     def input_function():
         ds = tf.data.Dataset.from_tensor_slices((dict(data_df), label_df))
         if shuffle:
@@ -58,36 +88,33 @@ def make_input_function(data_df, label_df, num_epochs=200, shuffle=True, batch_s
     return input_function
 
 
-train_input_fn = make_input_function(df_train, y_train)
-eval_input_fn = make_input_function(df_eval, y_eval, num_epochs=1, shuffle=False)
+def get_points_predictions():
+    goal_predictions = predict('get_df_for_goal_predictions', 'I_F_goals', ['playerId', 'position'],
+                               ['icetime', 'games_played', 'I_F_xGoals', '5on4_icetime', 'I_F_shotsOnGoal'], 200)
+    assist_predictions = predict('get_df_for_assist_predictions', 'I_F_assists', ['playerId', 'position'],
+                                 ['icetime', 'games_played', 'OnIce_F_xGoals', 'OnIce_F_shotsOnGoal', '5on4_icetime',
+                                  'onIce_corsiPercentage'], 350)
 
-linear_est = tf.estimator.LinearRegressor(feature_columns=feature_columns)
+    combined_predictions = []
 
-linear_est.train(train_input_fn)
+    for goal_pred, assist_pred in zip(goal_predictions, assist_predictions):
+        # Assuming both lists have the same players in the same order
+        player_prediction = {
+            'playerId': goal_pred['playerId'],
+            'name': goal_pred['name'],
+            'goal_prediction': round(goal_pred['prediction']),
+            'assist_prediction': round(assist_pred['prediction']),
+            'point_prediction': round(goal_pred['prediction']) + round(assist_pred['prediction'])
+        }
+        combined_predictions.append(player_prediction)
 
-predictions = list(linear_est.predict(input_fn=eval_input_fn))
-result = linear_est.evaluate(eval_input_fn)
+    return sorted(combined_predictions, key=lambda x: (x['point_prediction'], x['goal_prediction']), reverse=True)
 
-clear_output()
 
-print(result)
-
-player_goal_predictions = []
-
-for i, prediction in enumerate(predictions):
-    player_data = df_eval.iloc[i]
-    player_name = player_data['name']
-    predicted_goals = prediction['predictions'][0]
-
-    # Set negative predictions to 0
-    if predicted_goals < 0:
-        predicted_goals = 0
-
-    player_goal_predictions.append((player_name, predicted_goals))
-
-sorted_player_goal_predictions = sorted(player_goal_predictions, key=lambda x: x[1], reverse=True)
-
-i = 1
-for player_name, predicted_goals in sorted_player_goal_predictions:
-    print(f"{i}: {player_name}: {predicted_goals:.2f} goals")
-    i += 1
+if __name__ == '__main__':
+    points_predictions = get_points_predictions()
+    for i, player in enumerate(points_predictions, start=1):
+        predicted_goals = player['goal_prediction']
+        predicted_assists = player['assist_prediction']
+        predicted_points = player['point_prediction']
+        print(f'{i:3}: {player["name"]:20} {predicted_points:5} points ({predicted_goals}G {predicted_assists}A)')
