@@ -13,7 +13,7 @@ class SkatersStats:
         return self.players_data
 
     def get_df_for_goal_predictions(self) -> DataFrame:
-        relevant_columns = ['playerId', 'name', 'position', 'icetime', 'games_played', 'I_F_shotsOnGoal', 'I_F_xGoals', 'I_F_goals']
+        relevant_columns = ['playerId', 'name', 'position', 'icetime', 'games_played', 'I_F_shotsOnGoal', 'I_F_flurryAdjustedxGoals', 'I_F_goals']
         df = self.players_data[self.players_data['situation'] == 'all']
         df = df[relevant_columns]
 
@@ -26,7 +26,7 @@ class SkatersStats:
         return df
 
     def get_df_for_assist_predictions(self) -> DataFrame:
-        relevant_columns = ['playerId', 'name', 'position', 'icetime', 'games_played', 'OnIce_F_xGoals', 'OnIce_F_shotsOnGoal', 'onIce_corsiPercentage', 'I_F_primaryAssists', 'I_F_secondaryAssists']
+        relevant_columns = ['playerId', 'name', 'position', 'icetime', 'games_played', 'OnIce_F_flurryAdjustedxGoals', 'OnIce_F_shotsOnGoal', 'onIce_corsiPercentage', 'I_F_primaryAssists', 'I_F_secondaryAssists']
         df = self.players_data[self.players_data['situation'] == 'all']
         df = df[relevant_columns]
 

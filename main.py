@@ -90,9 +90,9 @@ def make_input_function(data_df, label_df, num_epochs=350, shuffle=True, batch_s
 
 def get_points_predictions():
     goal_predictions = predict('get_df_for_goal_predictions', 'I_F_goals', ['playerId', 'position'],
-                               ['icetime', 'games_played', 'I_F_xGoals', '5on4_icetime', 'I_F_shotsOnGoal'], 200)
+                               ['icetime', 'games_played', 'I_F_flurryAdjustedxGoals', '5on4_icetime', 'I_F_shotsOnGoal'], 200)
     assist_predictions = predict('get_df_for_assist_predictions', 'I_F_assists', ['playerId', 'position'],
-                                 ['icetime', 'games_played', 'OnIce_F_xGoals', 'OnIce_F_shotsOnGoal', '5on4_icetime',
+                                 ['icetime', 'games_played', 'OnIce_F_flurryAdjustedxGoals', 'OnIce_F_shotsOnGoal', '5on4_icetime',
                                   'onIce_corsiPercentage'], 350)
 
     combined_predictions = []
