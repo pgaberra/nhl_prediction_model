@@ -98,7 +98,6 @@ def get_points_predictions():
     combined_predictions = []
 
     for goal_pred, assist_pred in zip(goal_predictions, assist_predictions):
-        # Assuming both lists have the same players in the same order
         player_prediction = {
             'playerId': goal_pred['playerId'],
             'name': goal_pred['name'],
