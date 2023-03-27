@@ -6,7 +6,14 @@ import numpy as np
 class SkatersStats:
 
     def __init__(self, file_name, season: str):
-        self.players_data = pd.read_csv(file_name)
+        try:
+            self.players_data = pd.read_csv(file_name)
+        except FileNotFoundError:
+            print(f"Error: The file {file_name} could not be found.")
+            exit()
+        except Exception as e:
+            print(f"Error: An unexpected error occurred while reading the file {file_name}: {e}")
+            exit()
         self.season = season
 
     def get_df(self) -> DataFrame:
