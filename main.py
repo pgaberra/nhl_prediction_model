@@ -7,6 +7,16 @@ from skaters_stats_df import SkatersStats
 
 
 def predict(get_df_function, target_column, categorical_columns, numeric_columns, num_epochs):
+    """
+    Train a linear regression model using TensorFlow and return player predictions.
+
+    :param get_df_function: Function name to obtain the data frame from SkatersStats class
+    :param target_column: Target column name for the predictions
+    :param categorical_columns: List of categorical column names
+    :param numeric_columns: List of numeric column names
+    :param num_epochs: Number of training epochs
+    :return: List of dictionaries containing player predictions
+    """
     skaters_df_2018 = SkatersStats('data/skaters_2018.csv', '2018')
     skaters_df_2019 = SkatersStats('data/skaters_2019.csv', '2019')
     skaters_df_2020 = SkatersStats('data/skaters_2020.csv', '2020')
@@ -78,6 +88,16 @@ def predict(get_df_function, target_column, categorical_columns, numeric_columns
 
 
 def make_input_function(data_df, label_df, num_epochs=350, shuffle=True, batch_size=32):
+    """
+        Create an input function for the TensorFlow Dataset.
+
+        :param data_df: DataFrame containing input features
+        :param label_df: DataFrame containing target labels
+        :param num_epochs: Number of training epochs (default: 350)
+        :param shuffle: Boolean indicating whether to shuffle the dataset (default: True)
+        :param batch_size: Batch size for training (default: 32)
+        :return: Function to generate the TensorFlow Dataset
+    """
     def input_function():
         ds = tf.data.Dataset.from_tensor_slices((dict(data_df), label_df))
         if shuffle:
@@ -89,6 +109,11 @@ def make_input_function(data_df, label_df, num_epochs=350, shuffle=True, batch_s
 
 
 def get_points_predictions():
+    """
+    Calculate player point predictions by combining goal and assist predictions.
+
+    :return: List of dictionaries containing combined player point predictions
+    """
     goal_predictions = predict('get_df_for_goal_predictions', 'I_F_goals', ['playerId', 'position'],
                                ['icetime', 'games_played', 'I_F_flurryAdjustedxGoals', '5on4_icetime', 'I_F_shotsOnGoal'], 200)
     assist_predictions = predict('get_df_for_assist_predictions', 'I_F_assists', ['playerId', 'position'],
