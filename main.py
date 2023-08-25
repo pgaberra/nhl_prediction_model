@@ -26,10 +26,10 @@ def predict(get_df_function, target_column, categorical_columns, numeric_columns
     scaler = StandardScaler()
 
     df_train = pd.concat(
-        [getattr(skaters_df_2018, get_df_function)(),
-         getattr(skaters_df_2019, get_df_function)(),
+        [getattr(skaters_df_2019, get_df_function)(),
          getattr(skaters_df_2020, get_df_function)(),
-         getattr(skaters_df_2021, get_df_function)()],
+         getattr(skaters_df_2021, get_df_function)(),
+         getattr(skaters_df_2022, get_df_function)()],
         ignore_index=True)
     df_eval = getattr(skaters_df_2022, get_df_function)()
 
