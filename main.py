@@ -7,17 +7,6 @@ from skaters_stats_df import SkatersStats
 
 
 def predict(get_df_function, target_column, categorical_columns, numeric_columns, num_epochs):
-    """
-    Train a linear regression model using TensorFlow and return player predictions.
-
-    :param get_df_function: Function name to obtain the data frame from SkatersStats class
-    :param target_column: Target column name for the predictions
-    :param categorical_columns: List of categorical column names
-    :param numeric_columns: List of numeric column names
-    :param num_epochs: Number of training epochs
-    :return: List of dictionaries containing player predictions
-    """
-    skaters_df_2018 = SkatersStats('data/skaters_2018.csv', '2018')
     skaters_df_2019 = SkatersStats('data/skaters_2019.csv', '2019')
     skaters_df_2020 = SkatersStats('data/skaters_2020.csv', '2020')
     skaters_df_2021 = SkatersStats('data/skaters_2021.csv', '2021')
@@ -73,6 +62,7 @@ def predict(get_df_function, target_column, categorical_columns, numeric_columns
         player_data = df_eval.iloc[i]
         player_id = player_data['playerId']
         player_name = player_data['name']
+        player_age = player_data['age']
         predicted_target = prediction['predictions'][0]
 
         # Set negative predictions to 0
@@ -81,6 +71,7 @@ def predict(get_df_function, target_column, categorical_columns, numeric_columns
 
         player['playerId'] = player_id
         player['name'] = player_name
+        player['age'] = player_age
         player['prediction'] = predicted_target
         players.append(player)
 
@@ -88,16 +79,6 @@ def predict(get_df_function, target_column, categorical_columns, numeric_columns
 
 
 def make_input_function(data_df, label_df, num_epochs=350, shuffle=True, batch_size=32):
-    """
-        Create an input function for the TensorFlow Dataset.
-
-        :param data_df: DataFrame containing input features
-        :param label_df: DataFrame containing target labels
-        :param num_epochs: Number of training epochs (default: 350)
-        :param shuffle: Boolean indicating whether to shuffle the dataset (default: True)
-        :param batch_size: Batch size for training (default: 32)
-        :return: Function to generate the TensorFlow Dataset
-    """
     def input_function():
         ds = tf.data.Dataset.from_tensor_slices((dict(data_df), label_df))
         if shuffle:
@@ -109,16 +90,11 @@ def make_input_function(data_df, label_df, num_epochs=350, shuffle=True, batch_s
 
 
 def get_points_predictions():
-    """
-    Calculate player point predictions by combining goal and assist predictions.
-
-    :return: List of dictionaries containing combined player point predictions
-    """
     goal_predictions = predict('get_df_for_goal_predictions', 'I_F_goals', ['playerId', 'position'],
-                               ['icetime', 'games_played', 'I_F_flurryAdjustedxGoals', '5on4_icetime', 'I_F_shotsOnGoal'], 200)
+                               ['icetime', 'games_played', 'I_F_flurryAdjustedxGoals', '5on4_icetime', 'I_F_shotsOnGoal', 'age'], 200)
     assist_predictions = predict('get_df_for_assist_predictions', 'I_F_assists', ['playerId', 'position'],
                                  ['icetime', 'games_played', 'OnIce_F_flurryAdjustedxGoals', 'OnIce_F_shotsOnGoal', '5on4_icetime',
-                                  'onIce_corsiPercentage'], 350)
+                                  'onIce_corsiPercentage', 'age'], 350)
 
     combined_predictions = []
 
@@ -126,6 +102,7 @@ def get_points_predictions():
         player_prediction = {
             'playerId': goal_pred['playerId'],
             'name': goal_pred['name'],
+            'age': goal_pred['age'],
             'goal_prediction': round(goal_pred['prediction']),
             'assist_prediction': round(assist_pred['prediction']),
             'point_prediction': round(goal_pred['prediction']) + round(assist_pred['prediction'])
@@ -141,4 +118,4 @@ if __name__ == '__main__':
         predicted_goals = player['goal_prediction']
         predicted_assists = player['assist_prediction']
         predicted_points = player['point_prediction']
-        print(f'{i:3}: {player["name"]:20} {predicted_points:5} points ({predicted_goals}G {predicted_assists}A)')
+        print(f'{i:3}: {player["name"]:20} {predicted_points:5} points ({predicted_goals}G {predicted_assists}A) {player["age"]}')
