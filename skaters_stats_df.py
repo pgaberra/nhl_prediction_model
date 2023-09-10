@@ -65,6 +65,7 @@ class SkatersStats:
         all_players_lookup.drop('birthDate', axis=1, inplace=True)
         df = df.merge(all_players_lookup, on='playerId', how='left')
         df.dropna(subset=['age'], inplace=True)
+        df['age'] = df['age'].astype(int)
 
         return df
 
@@ -96,5 +97,6 @@ class SkatersStats:
         all_players_lookup.drop('birthDate', axis=1, inplace=True)
         df = df.merge(all_players_lookup, on='playerId', how='left')
         df.dropna(subset=['age'], inplace=True)
+        df['age'] = df['age'].astype(int)
 
         return df
