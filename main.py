@@ -6,21 +6,22 @@ from sklearn.preprocessing import StandardScaler
 from skaters_stats_df import SkatersStats
 
 
-def predict(get_df_function, target_column, categorical_columns, numeric_columns, num_epochs):
-    skaters_df_2019 = SkatersStats('data/skaters_2019.csv', '2019')
-    skaters_df_2020 = SkatersStats('data/skaters_2020.csv', '2020')
-    skaters_df_2021 = SkatersStats('data/skaters_2021.csv', '2021')
-    skaters_df_2022 = SkatersStats('data/skaters_2022.csv', '2022')
+skaters_df_2019 = SkatersStats('data/skaters_2019.csv', '2019', '2019-09-11')
+skaters_df_2020 = SkatersStats('data/skaters_2020.csv', '2020', '2020-09-11')
+skaters_df_2021 = SkatersStats('data/skaters_2021.csv', '2021', '2021-09-11')
+skaters_df_2022_test = SkatersStats('data/skaters_2022.csv', '2022', '2022-09-11')
+skaters_df_2022_eval = SkatersStats('data/skaters_2022.csv', '2022', '2023-09-11')
 
+def predict(get_df_function, target_column, categorical_columns, numeric_columns, num_epochs):
     scaler = StandardScaler()
 
     df_train = pd.concat(
         [getattr(skaters_df_2019, get_df_function)(),
          getattr(skaters_df_2020, get_df_function)(),
          getattr(skaters_df_2021, get_df_function)(),
-         getattr(skaters_df_2022, get_df_function)()],
+         getattr(skaters_df_2022_test, get_df_function)()],
         ignore_index=True)
-    df_eval = getattr(skaters_df_2022, get_df_function)()
+    df_eval = getattr(skaters_df_2022_eval, get_df_function)()
 
     y_train = df_train.pop(target_column)
     y_eval = df_eval.pop(target_column)
@@ -102,7 +103,6 @@ def get_points_predictions():
         player_prediction = {
             'playerId': goal_pred['playerId'],
             'name': goal_pred['name'],
-            'age': goal_pred['age'],
             'goal_prediction': round(goal_pred['prediction']),
             'assist_prediction': round(assist_pred['prediction']),
             'point_prediction': round(goal_pred['prediction']) + round(assist_pred['prediction'])
@@ -118,4 +118,4 @@ if __name__ == '__main__':
         predicted_goals = player['goal_prediction']
         predicted_assists = player['assist_prediction']
         predicted_points = player['point_prediction']
-        print(f'{i:3}: {player["name"]:20} {predicted_points:5} points ({predicted_goals}G {predicted_assists}A) {player["age"]}')
+        print(f'{i:3}: {player["name"]:20} {predicted_points:5} points ({predicted_goals}G {predicted_assists}A) {skaters_df_2022_eval.get_df().loc[skaters_df_2022_eval.get_df()["playerId"] == player["playerId"], "games_played"].iloc[0]}')

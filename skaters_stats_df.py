@@ -3,25 +3,11 @@ from pandas import DataFrame
 from datetime import datetime
 
 
-def age_from_birthdate(birthdate_str, current_date_str='2023-09-07'):
-    birth_date = datetime.strptime(birthdate_str, '%Y-%m-%d')
-    current_date = datetime.strptime(current_date_str, '%Y-%m-%d')
-
-    age = current_date.year - birth_date.year - (
-                (current_date.month, current_date.day) < (birth_date.month, birth_date.day))
-
-    return int(age)
-
-
 class SkatersStats:
 
-    def __init__(self, file_name, season: str):
-        """
-        Initialize a SkatersStats object with player statistics from a CSV file.
+    def __init__(self, file_name, season: str, date: str):
+        self.date = date
 
-        :param file_name: The path to the CSV file containing player statistics
-        :param season: A string representing the season of the player statistics
-        """
         try:
             self.players_data = pd.read_csv(file_name)
             self.all_players_lookup = pd.read_csv('data/allPlayersLookup.csv')
@@ -61,7 +47,7 @@ class SkatersStats:
         # add player age
         all_players_lookup = self.all_players_lookup[['playerId', 'birthDate']]
         all_players_lookup.dropna(subset=['birthDate'], inplace=True)
-        all_players_lookup['age'] = all_players_lookup['birthDate'].apply(age_from_birthdate)
+        all_players_lookup['age'] = all_players_lookup['birthDate'].apply(self.age_from_birthdate)
         all_players_lookup.drop('birthDate', axis=1, inplace=True)
         df = df.merge(all_players_lookup, on='playerId', how='left')
         df.dropna(subset=['age'], inplace=True)
@@ -93,10 +79,19 @@ class SkatersStats:
         # add player age
         all_players_lookup = self.all_players_lookup[['playerId', 'birthDate']]
         all_players_lookup.dropna(subset=['birthDate'], inplace=True)
-        all_players_lookup['age'] = all_players_lookup['birthDate'].apply(age_from_birthdate)
+        all_players_lookup['age'] = all_players_lookup['birthDate'].apply(self.age_from_birthdate)
         all_players_lookup.drop('birthDate', axis=1, inplace=True)
         df = df.merge(all_players_lookup, on='playerId', how='left')
         df.dropna(subset=['age'], inplace=True)
         df['age'] = df['age'].astype(int)
 
         return df
+
+    def age_from_birthdate(self, birthdate_str):
+        birth_date = datetime.strptime(birthdate_str, '%Y-%m-%d')
+        current_date = datetime.strptime(self.date, '%Y-%m-%d')
+
+        age = current_date.year - birth_date.year - (
+                (current_date.month, current_date.day) < (birth_date.month, birth_date.day))
+
+        return int(age)
